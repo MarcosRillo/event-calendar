@@ -6,35 +6,26 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('organizations', function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->string('slug')->unique();
-            $table->string('email')->nullable();
-            $table->string('logo_url')->nullable();
             $table->string('website_url')->nullable();
-            $table->string('header_image_url')->nullable();
-            $table->string('footer_image_url')->nullable();
             $table->string('address')->nullable();
-            $table->string('contact_person')->nullable();
-            $table->json('color_palette');
-            $table->json('config')->nullable();
-            $table->foreignId('parent_id')->nullable()->constrained('organizations')->onDelete('cascade');
-            $table->enum('trust_level', ['none', 'internal', 'public'])->nullable();
+            $table->string('phone')->nullable();
+            $table->string('email')->nullable();
+            $table->unsignedBigInteger('admin_id')->nullable();
+            $table->unsignedBigInteger('parent_id')->nullable();
+            $table->foreignId('trust_level_id')->constrained()->onDelete('restrict');
             $table->boolean('is_active')->default(true);
+            $table->unsignedBigInteger('created_by')->nullable();
             $table->timestamps();
-            $table->softDeletes(); 
+            $table->softDeletes();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('organizations');
