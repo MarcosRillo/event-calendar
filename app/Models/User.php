@@ -2,47 +2,72 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use SoftDeletes, HasApiTokens;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
-        'name',
+        'organization_id',
+        'role_id',
+        'first_name',
+        'last_name',
         'email',
+        'email_verified_at',
         'password',
+        'phone',
+        'avatar_url',
+        'is_active',
+        'created_by',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
+    protected $hidden = ['password'];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
+    public function organization()
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        return $this->belongsTo(Organization::class);
+    }
+
+    public function role()
+    {
+        return $this->belongsTo(Role::class);
+    }
+
+    public function createdBy()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function createdOrganizations()
+    {
+        return $this->hasMany(Organization::class, 'created_by');
+    }
+
+    public function administeredOrganizations()
+    {
+        return $this->hasMany(Organization::class, 'admin_id');
+    }
+
+    public function events()
+    {
+        return $this->hasMany(Event::class, 'created_by');
+    }
+
+    public function invitations()
+    {
+        return $this->hasMany(Invitation::class, 'created_by');
+    }
+
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class);
+    }
+
+    public function formSubmissions()
+    {
+        return $this->hasMany(EventFormSubmission::class, 'submitted_by');
     }
 }
