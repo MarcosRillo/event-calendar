@@ -7,6 +7,7 @@ use App\Models\Invitation;
 use App\Models\InvitationOrganizationData;
 use App\Models\InvitationAdminData;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Auth;
 
 class SuborganizationController extends Controller
 {
@@ -32,7 +33,7 @@ class SuborganizationController extends Controller
             'email' => $data['email'],
             'token' => Str::random(40),
             'status_id' => 1, // pending
-            'created_by' => auth()->id(),
+            'created_by' => Auth::id(),
         ]);
 
         InvitationOrganizationData::create([
