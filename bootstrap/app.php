@@ -12,6 +12,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Aplica StartSession solo al grupo 'api' para rutas que lo requieran (como Sanctum login)
+        $middleware->group('api', [
+            \Illuminate\Session\Middleware\StartSession::class,
+        ]);
         // ...
     })
     ->withExceptions(function (Exceptions $exceptions) {

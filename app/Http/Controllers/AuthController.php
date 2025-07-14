@@ -10,22 +10,32 @@ class AuthController extends Controller
 {
     public function login(Request $request)
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required'],
-        ]);
+        try {
+            $credentials = $request->validate([
+                'email' => ['required', 'email'],
+                'password' => ['required'],
+            ]);
 
-        if (Auth::attempt($credentials)) {
-            $request->session()->regenerate();
+            if (Auth::attempt($credentials)) {
+                $request->session()->regenerate();
+                return response()->json([
+                    'success' => true,
+                    'user' => Auth::user(),
+                    'message' => 'Login successful',
+                ], 200);
+            }
+
             return response()->json([
-                'user' => Auth::user(),
-                'message' => 'Login successful',
-            ], 200);
+                'success' => false,
+                'message' => 'Invalid credentials',
+            ], 401);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred during login.',
+                'error' => app()->environment('local') ? $e->getMessage() : null,
+            ], 500);
         }
-
-        return response()->json([
-            'message' => 'Invalid credentials',
-        ], 401);
     }
 
     public function logout(Request $request)
