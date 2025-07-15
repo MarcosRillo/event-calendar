@@ -40,9 +40,17 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-        return response()->json(['message' => 'Logout successful'], 200);
+        try {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            return response()->json(['message' => 'Logout successful'], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred during logout.',
+                'error' => app()->environment('local') ? $e->getMessage() : null,
+            ], 500);
+        }
     }
 }
