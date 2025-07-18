@@ -203,10 +203,10 @@ class SuperAdminController extends Controller
             $perPage = $request->get('per_page', 15);
             $search = $request->get('search');
 
-            $query = Event::select('id', 'title', 'description', 'organization_id', 'creator_id', 'status_id', 'created_at')
+            $query = Event::select('id', 'title', 'description', 'start_date', 'end_date', 'organization_id', 'created_by', 'status_id', 'created_at')
                 ->with([
-                    'organization' => fn($query) => $query->select('id', 'name'),
-                    'creator' => fn($query) => $query->select('id', 'first_name', 'last_name'),
+                    'organization' => fn($query) => $query->select('id', 'name', 'slug'),
+                    'createdBy' => fn($query) => $query->select('id', 'first_name', 'last_name'),
                     'status' => fn($query) => $query->select('id', 'name'),
                 ]);
 
