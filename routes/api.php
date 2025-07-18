@@ -6,7 +6,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\SuborganizationController;
 use App\Http\Controllers\SuperAdminController;
 
-Route::post('/login', [AuthController::class, 'login']);
+Route::middleware(['throttle:60,1'])->post('/login', [AuthController::class, 'login']);
 Route::post('/request-suborganization', [SuborganizationController::class, 'requestSuborganization']);
 
 Route::middleware(['auth:sanctum'])->group(function () {
