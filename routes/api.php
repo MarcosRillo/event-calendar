@@ -11,6 +11,10 @@ Route::post('/request-suborganization', [SuborganizationController::class, 'requ
 
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
+    
+    // Sub-organization routes
+    Route::post('/suborganization/create', [SuborganizationController::class, 'createRequest']);
+    
     Route::get('/user', function (Request $request) {
         try {
             $user = $request->user();
