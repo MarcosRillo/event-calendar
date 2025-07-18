@@ -53,16 +53,6 @@ class SuperAdminController extends Controller
                     }),
             ];
 
-            // Log de acceso para auditoría
-            Log::info('SuperAdmin dashboard accessed', [
-                'user_id' => $user->id,
-                'stats' => [
-                    'total_users' => $stats['total_users'],
-                    'total_organizations' => $stats['total_organizations'],
-                    'total_events' => $stats['total_events'],
-                ],
-            ]);
-
             return response()->json([
                 'success' => true,
                 'message' => 'Super admin dashboard data retrieved successfully.',
@@ -116,14 +106,6 @@ class SuperAdminController extends Controller
             $users = $query->orderBy('created_at', 'desc')
                           ->paginate($perPage);
 
-            // Log de acceso para auditoría
-            Log::info('SuperAdmin users list accessed', [
-                'user_id' => $request->user()->id,
-                'per_page' => $perPage,
-                'search' => $search,
-                'total' => $users->total(),
-            ]);
-
             return response()->json([
                 'success' => true,
                 'message' => 'Users retrieved successfully.',
@@ -165,14 +147,6 @@ class SuperAdminController extends Controller
 
             $organizations = $query->orderBy('created_at', 'desc')
                                   ->paginate($perPage);
-
-            // Log de acceso para auditoría
-            Log::info('SuperAdmin organizations list accessed', [
-                'user_id' => $request->user()->id,
-                'per_page' => $perPage,
-                'search' => $search,
-                'total' => $organizations->total(),
-            ]);
 
             return response()->json([
                 'success' => true,
@@ -219,14 +193,6 @@ class SuperAdminController extends Controller
 
             $events = $query->orderBy('created_at', 'desc')
                            ->paginate($perPage);
-
-            // Log de acceso para auditoría
-            Log::info('SuperAdmin events list accessed', [
-                'user_id' => $request->user()->id,
-                'per_page' => $perPage,
-                'search' => $search,
-                'total' => $events->total(),
-            ]);
 
             return response()->json([
                 'success' => true,

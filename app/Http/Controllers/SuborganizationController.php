@@ -27,12 +27,6 @@ class SuborganizationController extends Controller
             // The validation is handled by CreateSuborganizationRequest
             $validatedData = $request->validated();
 
-            // Log request initiation
-            Log::info('Sub-organization request creation initiated', [
-                'user_id' => Auth::id(),
-                'data' => $validatedData
-            ]);
-
             // Create the invitation
             $invitation = Invitation::create([
                 'id' => Str::uuid(),
@@ -67,11 +61,6 @@ class SuborganizationController extends Controller
             ]);
 
             DB::commit();
-
-            Log::info('Sub-organization request created successfully', [
-                'invitation_id' => $invitation->id,
-                'user_id' => Auth::id()
-            ]);
 
             return response()->json([
                 'success' => true,
@@ -171,13 +160,6 @@ class SuborganizationController extends Controller
                     'admin_data' => $adminData
                 ];
             });
-
-            // Log de la operación exitosa
-            Log::info('Solicitud de sub-organización creada exitosamente', [
-                'invitation_id' => $result['invitation']->id,
-                'organization_name' => $data['organization']['name'],
-                'created_by' => Auth::id()
-            ]);
 
             return response()->json([
                 'success' => true,
@@ -284,12 +266,6 @@ class SuborganizationController extends Controller
                 'processed_by' => Auth::id(),
                 'processed_at' => now(),
                 'rejection_reason' => $data['reason'] ?? null
-            ]);
-
-            Log::info('Estado de solicitud de sub-organización actualizado', [
-                'invitation_id' => $invitationId,
-                'new_status' => $data['status'],
-                'processed_by' => Auth::id()
             ]);
 
             return response()->json([

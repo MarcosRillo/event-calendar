@@ -26,27 +26,10 @@ class AuthController extends Controller
                 'password' => ['required'],
             ]);
 
-            // Log del intento de login
-            Log::info('Login attempt', [
-                'email' => $credentials['email'],
-                'ip' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-                'timestamp' => now()->toISOString(),
-            ]);
-
             if (Auth::attempt($credentials)) {
                 $request->session()->regenerate();
                 
                 $user = $this->getAuthenticatedUser();
-
-                // Log de login exitoso
-                Log::info('User logged in successfully', [
-                    'user_id' => $user->id,
-                    'email' => $user->email,
-                    'role' => $user->role ? $user->role->name : null,
-                    'ip' => $request->ip(),
-                    'timestamp' => now()->toISOString(),
-                ]);
                 
                 return response()->json([
                     'success' => true,
@@ -95,15 +78,6 @@ class AuthController extends Controller
         try {
             $user = $request->user();
             
-            // Log del intento de logout
-            Log::info('Logout attempt', [
-                'user_id' => $user?->id,
-                'email' => $user?->email,
-                'ip' => $request->ip(),
-                'session_id' => $request->session()->getId(),
-                'timestamp' => now()->toISOString(),
-            ]);
-
             if ($user && method_exists($user, 'currentAccessToken')) {
                 $token = $user->currentAccessToken();
                 if ($token && get_class($token) !== 'Laravel\\Sanctum\\TransientToken') {
@@ -113,14 +87,6 @@ class AuthController extends Controller
             
             $request->session()->invalidate();
             $request->session()->regenerateToken();
-            
-            // Log de logout exitoso
-            Log::info('User logged out successfully', [
-                'user_id' => $user?->id,
-                'email' => $user?->email,
-                'ip' => $request->ip(),
-                'timestamp' => now()->toISOString(),
-            ]);
             
             return response()->json([
                 'success' => true,
