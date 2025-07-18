@@ -6,6 +6,22 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Sanctum\HasApiTokens;
 
+/**
+ * @property int $id
+ * @property int|null $organization_id
+ * @property int $role_id
+ * @property string $first_name
+ * @property string $last_name
+ * @property string $email
+ * @property string|null $phone
+ * @property string|null $avatar_url
+ * @property bool $is_active
+ * @property int|null $created_by
+ * @property-read string $name
+ * @property-read Organization|null $organization
+ * @property-read Role|null $role
+ * @property-read User|null $createdBy
+ */
 class User extends Authenticatable
 {
     use SoftDeletes, HasApiTokens;
@@ -25,6 +41,12 @@ class User extends Authenticatable
     ];
 
     protected $hidden = ['password'];
+
+    // Computed attribute for full name
+    public function getNameAttribute()
+    {
+        return trim($this->first_name . ' ' . $this->last_name);
+    }
 
     public function organization()
     {
@@ -69,5 +91,26 @@ class User extends Authenticatable
     public function formSubmissions()
     {
         return $this->hasMany(EventFormSubmission::class, 'submitted_by');
+    }
+
+    // Role helper methods
+    public function isSuperAdmin(): bool
+    {
+        return $this->role && $this->role->name === 'superadmin';
+    }
+
+    public function isOrganizationAdmin(): bool
+    {
+        return $this->role && $this->role->name === 'organization_admin';
+    }
+
+    public function isOrganizationUser(): bool
+    {
+        return $this->role && $this->role->name === 'organization_user';
+    }
+
+    public function hasRole(string $roleName): bool
+    {
+        return $this->role && $this->role->name === $roleName;
     }
 }

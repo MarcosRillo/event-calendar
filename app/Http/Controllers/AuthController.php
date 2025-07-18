@@ -9,6 +9,15 @@ use App\Models\User;
 
 class AuthController extends Controller
 {
+    /**
+     * Get the authenticated user with proper typing and relationships loaded
+     */
+    private function getAuthenticatedUser(): User
+    {
+        /** @var User $user */
+        $user = User::with('role')->find(Auth::id());
+        return $user;
+    }
     public function login(Request $request)
     {
         try {
@@ -17,20 +26,62 @@ class AuthController extends Controller
                 'password' => ['required'],
             ]);
 
+            // Log del intento de login
+            Log::info('Login attempt', [
+                'email' => $credentials['email'],
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'timestamp' => now()->toISOString(),
+            ]);
+
             if (Auth::attempt($credentials)) {
                 $request->session()->regenerate();
+                
+                $user = $this->getAuthenticatedUser();
+
+                // Log de login exitoso
+                Log::info('User logged in successfully', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'role' => $user->role ? $user->role->name : null,
+                    'ip' => $request->ip(),
+                    'timestamp' => now()->toISOString(),
+                ]);
+                
                 return response()->json([
                     'success' => true,
-                    'user' => Auth::user(),
+                    'user' => [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'role' => $user->role ? $user->role->name : null,
+                        'is_super_admin' => $user->isSuperAdmin(),
+                        'is_organization_admin' => $user->isOrganizationAdmin(),
+                    ],
                     'message' => 'Login successful',
                 ], 200);
             }
+
+            // Log de credenciales inválidas
+            Log::warning('Login failed - Invalid credentials', [
+                'email' => $credentials['email'],
+                'ip' => $request->ip(),
+                'timestamp' => now()->toISOString(),
+            ]);
 
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid credentials',
             ], 401);
         } catch (\Exception $e) {
+            // Log de error durante login
+            Log::error('Error during login', [
+                'error' => $e->getMessage(),
+                'email' => $request->input('email'),
+                'ip' => $request->ip(),
+                'timestamp' => now()->toISOString(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred during login.',
@@ -41,30 +92,65 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        Log::info('Entrando al método logout', [
-            'user_id' => optional($request->user())->id,
-            'ip' => $request->ip(),
-            'session_id' => $request->session()->getId(),
-        ]);
         try {
             $user = $request->user();
+            
+            // Log del intento de logout
+            Log::info('Logout attempt', [
+                'user_id' => $user?->id,
+                'email' => $user?->email,
+                'ip' => $request->ip(),
+                'session_id' => $request->session()->getId(),
+                'timestamp' => now()->toISOString(),
+            ]);
+
             if ($user && method_exists($user, 'currentAccessToken')) {
                 $token = $user->currentAccessToken();
                 if ($token && get_class($token) !== 'Laravel\\Sanctum\\TransientToken') {
                     $token->delete();
                 }
             }
+            
             $request->session()->invalidate();
             $request->session()->regenerateToken();
-            Log::info('Logout finalizado correctamente');
-            return response()->json(['message' => 'Logout successful'], 200);
+            
+            // Log de logout exitoso
+            Log::info('User logged out successfully', [
+                'user_id' => $user?->id,
+                'email' => $user?->email,
+                'ip' => $request->ip(),
+                'timestamp' => now()->toISOString(),
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Logout successful'
+            ], 200);
         } catch (\Exception $e) {
-            Log::error('Error en logout', ['exception' => $e]);
+            // Log de error durante logout
+            Log::error('Error during logout', [
+                'error' => $e->getMessage(),
+                'user_id' => $request->user()?->id,
+                'ip' => $request->ip(),
+                'timestamp' => now()->toISOString(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred during logout.',
                 'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
+    }
+
+    public function profile()
+    {
+        $user = $this->getAuthenticatedUser();
+        
+        return response()->json([
+            'user' => $user,
+            'is_super_admin' => $user->isSuperAdmin(),
+            'is_organization_admin' => $user->isOrganizationAdmin(),
+        ]);
     }
 }
