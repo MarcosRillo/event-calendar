@@ -5,9 +5,16 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\SuborganizationController;
 use App\Http\Controllers\SuperAdminController;
+use App\Http\Controllers\OrganizationRequestController;
 
 Route::middleware(['throttle:60,1'])->post('/login', [AuthController::class, 'login']);
 Route::post('/request-suborganization', [SuborganizationController::class, 'requestSuborganization']);
+
+// Public routes for organization requests
+Route::prefix('organization-request')->group(function () {
+    Route::get('/verify/{token}', [OrganizationRequestController::class, 'verifyToken']);
+    Route::post('/submit/{token}', [OrganizationRequestController::class, 'submitRequest']);
+});
 
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -49,4 +56,12 @@ Route::prefix('super-admin')->middleware(['auth:sanctum', 'super-admin'])->group
     Route::get('/organizations', [SuperAdminController::class, 'organizations']);
     Route::get('/events', [SuperAdminController::class, 'events']);
     Route::put('/users/{userId}/role', [SuperAdminController::class, 'updateUserRole']);
+    
+    // Organization requests management
+    Route::prefix('organization-requests')->group(function () {
+        Route::post('/send-invitation', [OrganizationRequestController::class, 'sendInvitation']);
+        Route::get('/', [OrganizationRequestController::class, 'listRequests']);
+        Route::get('/{invitationId}', [OrganizationRequestController::class, 'getRequest']);
+        Route::patch('/{invitationId}/status', [OrganizationRequestController::class, 'updateRequestStatus']);
+    });
 });
