@@ -9,6 +9,8 @@ use App\Models\User;
 use App\Models\Role;
 use App\Models\Invitation;
 use App\Models\InvitationStatus;
+use App\Models\InvitationOrganizationData;
+use App\Models\InvitationAdminData;
 use App\Models\Organization;
 use App\Services\EmailService;
 
@@ -24,7 +26,7 @@ class OrganizationRequestControllerTest extends TestCase
         parent::setUp();
         
         // Create roles
-        $superAdminRole = Role::factory()->create(['name' => 'super_admin']);
+        $superAdminRole = Role::factory()->create(['name' => 'superadmin']);
         $adminRole = Role::factory()->create(['name' => 'admin']);
 
         // Create users
@@ -37,6 +39,11 @@ class OrganizationRequestControllerTest extends TestCase
         InvitationStatus::factory()->create(['name' => 'rejected']);
 
         Mail::fake();
+    }
+
+    private function getStatusId(string $statusName): int
+    {
+        return InvitationStatus::where('name', $statusName)->first()->id;
     }
 
     public function test_submit_request_creates_invitation_successfully()
@@ -119,9 +126,10 @@ class OrganizationRequestControllerTest extends TestCase
     public function test_submit_request_prevents_duplicate_emails()
     {
         // Arrange
+        $pendingStatus = InvitationStatus::where('name', 'pending')->first();
         Invitation::factory()->create([
             'email' => 'duplicate@test.com',
-            'status' => 'pending'
+            'status_id' => $pendingStatus->id
         ]);
 
         $requestData = [
@@ -142,7 +150,7 @@ class OrganizationRequestControllerTest extends TestCase
     {
         // Act as regular user
         $response = $this->actingAs($this->regularUser)
-                        ->getJson('/api/organization-requests');
+                        ->getJson('/api/super-admin/organization-requests');
 
         // Assert
         $response->assertStatus(403);
@@ -151,173 +159,254 @@ class OrganizationRequestControllerTest extends TestCase
     public function test_super_admin_can_get_pending_requests()
     {
         // Arrange
-        Invitation::factory()->count(3)->create(['status' => 'pending']);
-        Invitation::factory()->count(2)->create(['status' => 'approved']);
+        Invitation::factory()->count(3)->create(['status_id' => $this->getStatusId('pending')]);
+        Invitation::factory()->count(2)->create(['status_id' => $this->getStatusId('approved')]);
 
         // Act
         $response = $this->actingAs($this->superAdmin)
-                        ->getJson('/api/organization-requests');
+                        ->getJson('/api/super-admin/organization-requests?status=pending');
 
         // Assert
         $response->assertStatus(200)
                 ->assertJsonStructure([
+                    'success',
+                    'message',
                     'data' => [
-                        '*' => [
-                            'id',
-                            'organization_name',
-                            'contact_name',
-                            'email',
-                            'status',
-                            'created_at'
-                        ]
-                    ],
-                    'meta' => [
                         'current_page',
+                        'data' => [
+                            '*' => [
+                                'id',
+                                'email',
+                                'token',
+                                'status_id',
+                                'expires_at',
+                                'created_at',
+                                'updated_at',
+                                'status' => [
+                                    'id',
+                                    'name',
+                                    'created_at',
+                                    'updated_at'
+                                ],
+                                'created_by' => [
+                                    'id',
+                                    'first_name',
+                                    'last_name',
+                                    'email'
+                                ]
+                            ]
+                        ],
                         'total',
                         'per_page'
                     ]
                 ]);
 
-        // Should only return pending requests
-        $this->assertEquals(3, $response->json('meta.total'));
+        // Should return only pending requests
+        $this->assertEquals(3, $response->json('data.total'));
     }
 
     public function test_super_admin_can_filter_requests_by_status()
     {
         // Arrange
-        Invitation::factory()->count(2)->create(['status' => 'pending']);
-        Invitation::factory()->count(3)->create(['status' => 'approved']);
-        Invitation::factory()->count(1)->create(['status' => 'rejected']);
+        Invitation::factory()->count(2)->create(['status_id' => $this->getStatusId('pending')]);
+        Invitation::factory()->count(3)->create(['status_id' => $this->getStatusId('approved')]);
+        Invitation::factory()->count(1)->create(['status_id' => $this->getStatusId('rejected')]);
 
         // Act
         $response = $this->actingAs($this->superAdmin)
-                        ->getJson('/api/organization-requests?status=approved');
+                        ->getJson('/api/super-admin/organization-requests?status=approved');
 
         // Assert
         $response->assertStatus(200);
-        $this->assertEquals(3, $response->json('meta.total'));
+        $this->assertEquals(3, $response->json('data.total'));
     }
 
     public function test_super_admin_can_approve_request()
     {
-        // Arrange
+        // Arrange - Create invitation with required related data
         $invitation = Invitation::factory()->create([
-            'status' => 'pending',
-            'organization_name' => 'Test Organization',
+            'status_id' => $this->getStatusId('pending'),
             'email' => 'test@org.com'
+        ]);
+
+        // Create organization data
+        InvitationOrganizationData::create([
+            'invitation_id' => $invitation->id,
+            'name' => 'Test Organization',
+            'slug' => 'test-organization',
+            'email' => 'admin@testorg.com',
+            'phone' => '+1234567890',
+            'website_url' => 'https://testorg.com',
+            'address' => '123 Test Street',
+            'description' => 'Test organization description'
+        ]);
+
+        // Create admin data
+        InvitationAdminData::create([
+            'invitation_id' => $invitation->id,
+            'first_name' => 'John',
+            'last_name' => 'Doe',
+            'email' => 'john.doe@testorg.com',
+            'phone' => '+1234567890'
         ]);
 
         // Act
         $response = $this->actingAs($this->superAdmin)
-                        ->patchJson("/api/organization-requests/{$invitation->id}", [
-                            'status' => 'approved'
+                        ->patchJson("/api/super-admin/organization-requests/{$invitation->id}/status", [
+                            'action' => 'approve'
                         ]);
 
         // Assert
         $response->assertStatus(200)
                 ->assertJsonStructure([
+                    'success',
                     'message',
-                    'invitation',
-                    'organization',
-                    'admin_credentials'
+                    'data' => [
+                        'invitation_id',
+                        'action',
+                        'processed_at'
+                    ]
                 ]);
 
         $this->assertDatabaseHas('invitations', [
             'id' => $invitation->id,
-            'status' => 'approved'
+            'status_id' => $this->getStatusId('approved')
         ]);
 
+        // Verify organization was created
         $this->assertDatabaseHas('organizations', [
             'name' => 'Test Organization',
-            'email' => 'test@org.com'
+            'email' => 'admin@testorg.com'
+        ]);
+
+        // Verify admin user was created
+        $this->assertDatabaseHas('users', [
+            'email' => 'john.doe@testorg.com',
+            'first_name' => 'John',
+            'last_name' => 'Doe'
         ]);
     }
 
     public function test_super_admin_can_reject_request()
     {
-        // Arrange
+        // Arrange - Create invitation with required related data
         $invitation = Invitation::factory()->create([
-            'status' => 'pending'
+            'status_id' => $this->getStatusId('pending')
+        ]);
+
+        // Create organization data (needed for rejection notification)
+        InvitationOrganizationData::create([
+            'invitation_id' => $invitation->id,
+            'name' => 'Test Organization to Reject',
+            'slug' => 'test-organization-reject',
+            'email' => 'admin@rejecttest.com',
+            'phone' => '+1234567890',
+            'website_url' => 'https://rejecttest.com',
+            'address' => '123 Test Street',
+            'description' => 'Test organization for rejection'
+        ]);
+
+        // Create admin data (needed for rejection notification)
+        InvitationAdminData::create([
+            'invitation_id' => $invitation->id,
+            'first_name' => 'Jane',
+            'last_name' => 'Smith',
+            'email' => 'jane.smith@rejecttest.com',
+            'phone' => '+1234567890'
         ]);
 
         // Act
         $response = $this->actingAs($this->superAdmin)
-                        ->patchJson("/api/organization-requests/{$invitation->id}", [
-                            'status' => 'rejected',
-                            'rejection_reason' => 'Insufficient information'
+                        ->patchJson("/api/super-admin/organization-requests/{$invitation->id}/status", [
+                            'action' => 'reject',
+                            'message' => 'Insufficient information'
                         ]);
 
         // Assert
         $response->assertStatus(200)
-                ->assertJson([
-                    'message' => 'Solicitud rechazada correctamente'
+                ->assertJsonStructure([
+                    'success',
+                    'message',
+                    'data' => [
+                        'invitation_id',
+                        'action',
+                        'processed_at'
+                    ]
                 ]);
 
         $this->assertDatabaseHas('invitations', [
             'id' => $invitation->id,
-            'status' => 'rejected',
-            'rejection_reason' => 'Insufficient information'
+            'status_id' => $this->getStatusId('rejected'),
+            'rejected_reason' => 'Insufficient information'
         ]);
     }
 
     public function test_update_status_validates_required_fields()
     {
         // Arrange
-        $invitation = Invitation::factory()->create(['status' => 'pending']);
+        $invitation = Invitation::factory()->create(['status_id' => $this->getStatusId('pending')]);
+        
+        // Crear datos de organización y admin requeridos
+        InvitationOrganizationData::factory()->create(['invitation_id' => $invitation->id]);
+        InvitationAdminData::factory()->create(['invitation_id' => $invitation->id]);
 
         // Act
         $response = $this->actingAs($this->superAdmin)
-                        ->patchJson("/api/organization-requests/{$invitation->id}", []);
+                        ->patchJson("/api/super-admin/organization-requests/{$invitation->id}/status", []);
 
         // Assert
         $response->assertStatus(422)
-                ->assertJsonValidationErrors(['status']);
+                ->assertJsonValidationErrors(['action']);
     }
 
     public function test_update_status_validates_rejection_reason_when_rejecting()
     {
         // Arrange
-        $invitation = Invitation::factory()->create(['status' => 'pending']);
+        $invitation = Invitation::factory()->create(['status_id' => $this->getStatusId('pending')]);
+        
+        // Crear datos de organización y admin requeridos
+        InvitationOrganizationData::factory()->create(['invitation_id' => $invitation->id]);
+        InvitationAdminData::factory()->create(['invitation_id' => $invitation->id]);
 
         // Act
         $response = $this->actingAs($this->superAdmin)
-                        ->patchJson("/api/organization-requests/{$invitation->id}", [
-                            'status' => 'rejected'
+                        ->patchJson("/api/super-admin/organization-requests/{$invitation->id}/status", [
+                            'action' => 'request_corrections'
                         ]);
 
         // Assert
         $response->assertStatus(422)
-                ->assertJsonValidationErrors(['rejection_reason']);
+                ->assertJsonValidationErrors(['corrections_notes']);
     }
 
     public function test_cannot_update_already_processed_request()
     {
         // Arrange
-        $invitation = Invitation::factory()->create(['status' => 'approved']);
+        $invitation = Invitation::factory()->create(['status_id' => $this->getStatusId('approved')]);
 
         // Act
         $response = $this->actingAs($this->superAdmin)
-                        ->patchJson("/api/organization-requests/{$invitation->id}", [
-                            'status' => 'rejected',
-                            'rejection_reason' => 'Changed mind'
+                        ->patchJson("/api/super-admin/organization-requests/{$invitation->id}/status", [
+                            'action' => 'reject',
+                            'message' => 'Changed mind'
                         ]);
 
         // Assert
-        $response->assertStatus(400)
+        $response->assertStatus(422)
                 ->assertJson([
-                    'error' => 'Esta solicitud ya ha sido procesada'
+                    'error' => 'INVALID_STATUS'
                 ]);
     }
 
     public function test_regular_user_cannot_update_request_status()
     {
         // Arrange
-        $invitation = Invitation::factory()->create(['status' => 'pending']);
+        $invitation = Invitation::factory()->create(['status_id' => $this->getStatusId('pending')]);
 
         // Act
         $response = $this->actingAs($this->regularUser)
-                        ->patchJson("/api/organization-requests/{$invitation->id}", [
-                            'status' => 'approved'
+                        ->patchJson("/api/super-admin/organization-requests/{$invitation->id}/status", [
+                            'action' => 'approve'
                         ]);
 
         // Assert
@@ -327,13 +416,13 @@ class OrganizationRequestControllerTest extends TestCase
     public function test_get_organization_request_statistics()
     {
         // Arrange
-        Invitation::factory()->count(5)->create(['status' => 'pending']);
-        Invitation::factory()->count(3)->create(['status' => 'approved']);
-        Invitation::factory()->count(2)->create(['status' => 'rejected']);
+        Invitation::factory()->count(5)->create(['status_id' => $this->getStatusId('pending')]);
+        Invitation::factory()->count(3)->create(['status_id' => $this->getStatusId('approved')]);
+        Invitation::factory()->count(2)->create(['status_id' => $this->getStatusId('rejected')]);
 
         // Act
         $response = $this->actingAs($this->superAdmin)
-                        ->getJson('/api/organization-requests/statistics');
+                        ->getJson('/api/super-admin/organization-requests/statistics');
 
         // Assert
         $response->assertStatus(200)
@@ -349,20 +438,21 @@ class OrganizationRequestControllerTest extends TestCase
     {
         // Arrange
         $invitation = Invitation::factory()->create([
-            'organization_name' => 'Specific Organization',
-            'status' => 'pending'
+            'status_id' => $this->getStatusId('pending')
         ]);
 
         // Act
         $response = $this->actingAs($this->superAdmin)
-                        ->getJson("/api/organization-requests/{$invitation->id}");
+                        ->getJson("/api/super-admin/organization-requests/{$invitation->id}");
 
         // Assert
         $response->assertStatus(200)
                 ->assertJson([
-                    'id' => $invitation->id,
-                    'organization_name' => 'Specific Organization',
-                    'status' => 'pending'
+                    'success' => true,
+                    'data' => [
+                        'id' => $invitation->id,
+                        'status_id' => $this->getStatusId('pending')
+                    ]
                 ]);
     }
 
@@ -370,7 +460,7 @@ class OrganizationRequestControllerTest extends TestCase
     {
         // Act
         $response = $this->actingAs($this->superAdmin)
-                        ->getJson('/api/organization-requests/99999');
+                        ->getJson('/api/super-admin/organization-requests/99999');
 
         // Assert
         $response->assertStatus(404);
