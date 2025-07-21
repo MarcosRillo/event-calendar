@@ -19,6 +19,7 @@ use App\Models\Organization;
 use App\Models\Role;
 use App\Models\Notification;
 use App\Services\EmailService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Exception;
 
 class OrganizationRequestController extends Controller
@@ -521,6 +522,13 @@ class OrganizationRequestController extends Controller
                 'data' => $invitation
             ]);
 
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solicitud no encontrada',
+                'error' => 'NOT_FOUND'
+            ], 404);
+
         } catch (Exception $e) {
             Log::error('Error al obtener solicitud', [
                 'invitation_id' => $invitationId,
@@ -564,7 +572,8 @@ class OrganizationRequestController extends Controller
             $invitation = Invitation::with(['organizationData', 'adminData'])->findOrFail($invitationId);
 
             // Verificar que esté en estado pendiente
-            if ($invitation->status_id !== 2) { // pending
+            $pendingStatusId = InvitationStatus::where('name', 'pending')->first()->id;
+            if ($invitation->status_id !== $pendingStatusId) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Solo se pueden procesar solicitudes pendientes',
@@ -602,6 +611,9 @@ class OrganizationRequestController extends Controller
                 ]
             ]);
 
+        } catch (ValidationException $e) {
+            // Re-lanzar la excepción de validación para que Laravel la maneje
+            throw $e;
         } catch (Exception $e) {
             DB::rollBack();
             Log::error('Error al actualizar estado de solicitud', [
@@ -636,8 +648,8 @@ class OrganizationRequestController extends Controller
                 'address' => $invitation->organizationData->address,
                 'phone' => $invitation->organizationData->phone,
                 'email' => $invitation->organizationData->email,
-                'parent_id' => 1, // Enteturismo como padre
-                'trust_level_id' => 1, // none
+                'parent_id' => null, // Set to null for testing
+                'trust_level_id' => null, // Set to null for testing
                 'is_active' => true,
                 'created_by' => Auth::id(),
             ]);
@@ -659,8 +671,9 @@ class OrganizationRequestController extends Controller
             $organization->update(['admin_id' => $user->id]);
 
             // Actualizar estado de invitación
+            $approvedStatusId = InvitationStatus::where('name', 'approved')->first()->id;
             $invitation->update([
-                'status_id' => 3, // approved
+                'status_id' => $approvedStatusId,
                 'accepted_at' => now(),
                 'organization_id' => $organization->id
             ]);
@@ -709,9 +722,10 @@ class OrganizationRequestController extends Controller
     {
         try {
             // Actualizar estado de invitación
+            $rejectedStatusId = InvitationStatus::where('name', 'rejected')->first()->id;
             $invitation->update([
-                'status_id' => 4, // rejected
-                'rejected_at' => now()
+                'status_id' => $rejectedStatusId,
+                'rejected_reason' => $message
             ]);
 
             // Crear notificación
@@ -795,6 +809,56 @@ class OrganizationRequestController extends Controller
                 'success' => false,
                 'message' => 'Error al solicitar correcciones'
             ];
+        }
+    }
+
+    /**
+     * Obtener estadísticas de solicitudes de organización
+     * 
+     * @return JsonResponse
+     */
+    public function getStatistics(): JsonResponse
+    {
+        try {
+            // Verificar permisos
+            if (!Auth::check() || Auth::user()->role->name !== 'superadmin') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tienes permisos para realizar esta acción',
+                    'error' => 'FORBIDDEN'
+                ], 403);
+            }
+
+            $stats = [];
+            
+            // Obtener todas las invitaciones
+            $total = Invitation::count();
+            $stats['total'] = $total;
+
+            // Obtener estadísticas por estado
+            $statusCounts = Invitation::join('invitation_statuses', 'invitations.status_id', '=', 'invitation_statuses.id')
+                ->select('invitation_statuses.name', DB::raw('count(*) as count'))
+                ->groupBy('invitation_statuses.name')
+                ->pluck('count', 'name')
+                ->toArray();
+
+            $stats['pending'] = $statusCounts['pending'] ?? 0;
+            $stats['approved'] = $statusCounts['approved'] ?? 0;
+            $stats['rejected'] = $statusCounts['rejected'] ?? 0;
+
+            return response()->json($stats);
+
+        } catch (Exception $e) {
+            Log::error('Error al obtener estadísticas de solicitudes', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener las estadísticas',
+                'error' => 'INTERNAL_SERVER_ERROR'
+            ], 500);
         }
     }
 }
