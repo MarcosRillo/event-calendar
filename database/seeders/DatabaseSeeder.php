@@ -11,17 +11,26 @@ use App\Models\EventCategory;
 use App\Models\EventStatus;
 use App\Models\Event;
 use App\Models\InvitationStatus;
+use App\Models\FieldType;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
         Role::create(['name' => 'superadmin']);
-        Role::create(['name' => 'organization_admin']);
-        Role::create(['name' => 'organization_user']);
+        Role::create(['name' => 'admin']);
+        Role::create(['name' => 'incharge']);
 
-        TrustLevel::create(['name' => 'verified']);
-        TrustLevel::create(['name' => 'unverified']);
+        TrustLevel::create(['name' => 'none']);
+        TrustLevel::create(['name' => 'level_1']);
+        TrustLevel::create(['name' => 'level_2']);
+
+        FieldType::create(['name' => 'text']);
+        FieldType::create(['name' => 'number']);
+        FieldType::create(['name' => 'date']);
+        FieldType::create(['name' => 'time']);
+        FieldType::create(['name' => 'select']);
+        FieldType::create(['name' => 'file']);
 
         Organization::create([
             'name' => 'Enteturismo',
@@ -48,10 +57,11 @@ class DatabaseSeeder extends Seeder
         EventCategory::create(['name' => 'Conference']);
         EventCategory::create(['name' => 'Workshop']);
 
-        EventStatus::create(['name' => 'draft']);
         EventStatus::create(['name' => 'pending']);
-        EventStatus::create(['name' => 'approved']);
+        EventStatus::create(['name' => 'approved_internal']);
+        EventStatus::create(['name' => 'approved_public']);
         EventStatus::create(['name' => 'rejected']);
+        EventStatus::create(['name' => 'corrections_needed']);
 
         Event::create([
             'organization_id' => 1,
@@ -67,9 +77,12 @@ class DatabaseSeeder extends Seeder
             'created_by' => 1,
         ]);
 
+        InvitationStatus::create(['name' => 'sent']);
         InvitationStatus::create(['name' => 'pending']);
-        InvitationStatus::create(['name' => 'accepted']);
+        InvitationStatus::create(['name' => 'approved']);
         InvitationStatus::create(['name' => 'rejected']);
+        InvitationStatus::create(['name' => 'corrections_needed']);
+        InvitationStatus::create(['name' => 'expired']);
     }
 }
 ?>

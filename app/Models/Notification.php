@@ -6,20 +6,20 @@ use Illuminate\Database\Eloquent\Model;
 
 class Notification extends Model
 {
-    protected $fillable = ['user_id', 'invitation_id', 'event_id', 'message'];
+    protected $fillable = [
+        'invitation_id', 
+        'type', 
+        'recipient_email', 
+        'content', 
+        'sent_at'
+    ];
 
-    public function user()
-    {
-        return $this->belongsTo(User::class);
-    }
+    protected $casts = [
+        'sent_at' => 'datetime',
+    ];
 
     public function invitation()
     {
         return $this->belongsTo(Invitation::class);
-    }
-
-    public function event()
-    {
-        return $this->belongsTo(Event::class);
     }
 }

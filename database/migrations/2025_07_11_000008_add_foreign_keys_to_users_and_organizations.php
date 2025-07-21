@@ -9,14 +9,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->foreign('organization_id')->references('id')->on('organizations')->onDelete('restrict');
+            $table->foreign('organization_id')->references('id')->on('organizations')->onDelete('cascade');
             $table->foreign('role_id')->references('id')->on('roles')->onDelete('restrict');
             $table->foreign('created_by')->references('id')->on('users')->onDelete('set null');
         });
 
         Schema::table('organizations', function (Blueprint $table) {
             $table->foreign('admin_id')->references('id')->on('users')->onDelete('set null');
-            $table->foreign('parent_id')->references('id')->on('organizations')->onDelete('set null');
+            $table->foreign('parent_id')->references('id')->on('organizations')->onDelete('cascade');
             $table->foreign('created_by')->references('id')->on('users')->onDelete('set null');
         });
     }

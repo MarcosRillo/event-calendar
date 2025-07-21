@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('email')->nullable();
             $table->unsignedBigInteger('admin_id')->nullable();
             $table->unsignedBigInteger('parent_id')->nullable();
-            $table->foreignId('trust_level_id')->constrained()->onDelete('restrict');
+            $table->foreignId('trust_level_id')->nullable()->constrained()->onDelete('set null');
             $table->boolean('is_active')->default(true);
             $table->unsignedBigInteger('created_by')->nullable();
             $table->timestamps();

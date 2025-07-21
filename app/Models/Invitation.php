@@ -3,13 +3,26 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Invitation extends Model
 {
-    use SoftDeletes;
+    protected $fillable = [
+        'email', 
+        'token', 
+        'status_id', 
+        'corrections_notes',
+        'expires_at',
+        'accepted_at',
+        'created_by', 
+        'updated_by',
+        'organization_id',
+        'rejected_reason'
+    ];
 
-    protected $fillable = ['email', 'token', 'status_id', 'created_by', 'organization_id'];
+    protected $casts = [
+        'expires_at' => 'datetime',
+        'accepted_at' => 'datetime',
+    ];
 
     public function status()
     {
@@ -19,6 +32,11 @@ class Invitation extends Model
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function updatedBy()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
     }
 
     public function organization()

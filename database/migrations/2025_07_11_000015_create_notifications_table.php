@@ -10,12 +10,15 @@ return new class extends Migration
     {
         Schema::create('notifications', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('invitation_id')->nullable()->constrained()->onDelete('cascade');
-            $table->foreignId('event_id')->nullable()->constrained()->onDelete('cascade');
-            $table->text('message');
+            $table->foreignId('invitation_id')->constrained()->onDelete('cascade');
+            $table->string('type');
+            $table->string('recipient_email');
+            $table->text('content')->nullable();
+            $table->timestamp('sent_at');
             $table->timestamps();
-            $table->index(['user_id', 'invitation_id', 'event_id']);
+            
+            // Índice para mejor performance
+            $table->index(['invitation_id']);
         });
     }
 
