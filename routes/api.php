@@ -64,6 +64,7 @@ Route::prefix('super-admin')->middleware(['auth:sanctum', 'super-admin'])->group
     Route::prefix('organization-requests')->group(function () {
         Route::post('/send-invitation', [OrganizationRequestController::class, 'sendInvitation']);
         Route::get('/', [OrganizationRequestController::class, 'listRequests']);
+        Route::get('/statistics', [OrganizationRequestController::class, 'getStatistics']);
         Route::get('/{invitationId}', [OrganizationRequestController::class, 'getRequest']);
         Route::patch('/{invitationId}/status', [OrganizationRequestController::class, 'updateRequestStatus']);
     });
