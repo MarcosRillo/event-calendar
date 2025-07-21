@@ -16,6 +16,9 @@ Route::prefix('organization-request')->group(function () {
     Route::post('/submit/{token}', [OrganizationRequestController::class, 'submitRequest']);
 });
 
+// Public route for anyone to submit organization requests
+Route::post('/organization-requests', [OrganizationRequestController::class, 'createPublicRequest']);
+
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     

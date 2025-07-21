@@ -123,4 +123,18 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Organization Invitation Settings
+    |--------------------------------------------------------------------------
+    |
+    | These settings control the behavior of organization invitations
+    |
+    */
+
+    'frontend_url' => env('FRONTEND_URL', 'http://localhost:3000'),
+    'invitation_expires_days' => env('INVITATION_EXPIRES_DAYS', 30),
+    'max_invitations_per_hour' => env('MAX_INVITATIONS_PER_HOUR', 10),
+    'organization_approval_required' => env('ORGANIZATION_APPROVAL_REQUIRED', true),
+
 ];

@@ -5,6 +5,8 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\RateLimiter;
+use App\Repositories\Interfaces\InvitationRepositoryInterface;
+use App\Repositories\Eloquent\InvitationRepository;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -13,7 +15,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Repository bindings
+        $this->app->bind(
+            InvitationRepositoryInterface::class,
+            InvitationRepository::class
+        );
     }
 
     /**
