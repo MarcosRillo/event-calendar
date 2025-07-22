@@ -71,7 +71,11 @@ class CacheService
             $driver = config('cache.default');
             
             if ($driver === 'redis') {
-                $keys = Cache::getRedis()->keys($prefix . '*');
+                // Laravel adds its own cache prefix, we need to include it
+                $laravelPrefix = config('cache.prefix');
+                $fullPrefix = $laravelPrefix . $prefix;
+                
+                $keys = Cache::getRedis()->keys($fullPrefix . '*');
                 
                 if (!empty($keys)) {
                     Cache::getRedis()->del($keys);
@@ -187,5 +191,7 @@ class CacheService
     {
         $this->forgetByPrefix($this->getInvitationKey($invitationId));
         $this->forget($this->getStatsKey('invitations'));
+        
+        // Note: Organization requests are no longer cached, so no need to invalidate them
     }
 }
