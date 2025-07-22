@@ -14,7 +14,7 @@
     
     <div class="message">
         <p><strong>📝 Motivo:</strong></p>
-        <p>{{ $message }}</p>
+        <p>{{ $customMessage }}</p>
     </div>
     
     @if(isset($additionalData['reason']) && $additionalData['reason'])

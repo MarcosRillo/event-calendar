@@ -69,7 +69,7 @@ class RequestStatusMail extends Mailable implements ShouldQueue
             with: [
                 'invitation' => $this->invitation,
                 'status' => $this->status,
-                'message' => $this->message,
+                'customMessage' => $this->message,
                 'organizationName' => $this->invitation->organizationData?->name,
                 'adminName' => $this->invitation->adminData ? 
                     $this->invitation->adminData->first_name . ' ' . $this->invitation->adminData->last_name : 

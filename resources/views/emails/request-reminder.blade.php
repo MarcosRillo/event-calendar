@@ -9,7 +9,7 @@
     
     <div class="warning-box">
         <p><strong>⏰ Recordatorio importante</strong></p>
-        <p>{{ $message }}</p>
+        <p>{{ $customMessage }}</p>
     </div>
     
     <div class="message">

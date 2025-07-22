@@ -13,7 +13,7 @@
     </div>
     
     <div class="message">
-        <p>{{ $message }}</p>
+        <p>{{ $customMessage }}</p>
     </div>
     
     @if(isset($additionalData['corrections']))

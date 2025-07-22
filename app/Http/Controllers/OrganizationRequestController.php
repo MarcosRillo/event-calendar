@@ -243,7 +243,7 @@ class OrganizationRequestController extends Controller
     {
         try {
             $invitation = Invitation::where('token', $token)
-                ->whereIn('status_id', [1, 2]) // sent, pending
+                ->whereIn('status_id', [1, 2, 5]) // sent, pending, corrections_needed
                 ->where('expires_at', '>', now())
                 ->first();
 
@@ -291,7 +291,7 @@ class OrganizationRequestController extends Controller
         try {
             // Verificar token
             $invitation = Invitation::where('token', $token)
-                ->whereIn('status_id', [1, 2]) // sent, pending
+                ->whereIn('status_id', [1, 2, 5]) // sent, pending, corrections_needed
                 ->where('expires_at', '>', now())
                 ->first();
 
