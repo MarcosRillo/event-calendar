@@ -37,6 +37,7 @@ class OrganizationRequestControllerTest extends TestCase
         InvitationStatus::factory()->create(['name' => 'pending']);
         InvitationStatus::factory()->create(['name' => 'approved']);
         InvitationStatus::factory()->create(['name' => 'rejected']);
+        InvitationStatus::factory()->create(['name' => 'corrections_needed']);
 
         Mail::fake();
     }
@@ -396,6 +397,53 @@ class OrganizationRequestControllerTest extends TestCase
                 ->assertJson([
                     'error' => 'INVALID_STATUS'
                 ]);
+    }
+
+    public function test_can_update_corrections_needed_request()
+    {
+        // Arrange
+        $invitation = Invitation::factory()->create(['status_id' => $this->getStatusId('corrections_needed')]);
+        
+        // Create required related data
+        InvitationOrganizationData::factory()->create(['invitation_id' => $invitation->id]);
+        InvitationAdminData::factory()->create(['invitation_id' => $invitation->id]);
+
+        // Act - Test approval
+        $response = $this->actingAs($this->superAdmin)
+                        ->patchJson("/api/super-admin/organization-requests/{$invitation->id}/status", [
+                            'action' => 'approve'
+                        ]);
+
+        // Assert
+        $response->assertStatus(200);
+        $this->assertDatabaseHas('invitations', [
+            'id' => $invitation->id,
+            'status_id' => $this->getStatusId('approved')
+        ]);
+    }
+
+    public function test_can_reject_corrections_needed_request()
+    {
+        // Arrange
+        $invitation = Invitation::factory()->create(['status_id' => $this->getStatusId('corrections_needed')]);
+        
+        // Create required related data
+        InvitationOrganizationData::factory()->create(['invitation_id' => $invitation->id]);
+        InvitationAdminData::factory()->create(['invitation_id' => $invitation->id]);
+
+        // Act - Test rejection
+        $response = $this->actingAs($this->superAdmin)
+                        ->patchJson("/api/super-admin/organization-requests/{$invitation->id}/status", [
+                            'action' => 'reject',
+                            'message' => 'Final rejection after corrections'
+                        ]);
+
+        // Assert
+        $response->assertStatus(200);
+        $this->assertDatabaseHas('invitations', [
+            'id' => $invitation->id,
+            'status_id' => $this->getStatusId('rejected')
+        ]);
     }
 
     public function test_regular_user_cannot_update_request_status()
