@@ -6,6 +6,7 @@ use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use App\Services\EmailService;
+use App\Services\CacheService;
 use App\Models\User;
 use App\Models\Organization;
 use App\Models\Invitation;
@@ -21,7 +22,8 @@ class EmailServiceTest extends TestCase
 {
     use RefreshDatabase;
 
-    private EmailService $emailService;
+    protected EmailService $emailService;
+    protected CacheService $cacheService;
 
     protected function setUp(): void
     {
@@ -30,7 +32,8 @@ class EmailServiceTest extends TestCase
         // Configurar frontend URL para tests
         config(['app.frontend_url' => 'http://localhost:3000']);
         
-        $this->emailService = new EmailService();
+        $this->cacheService = $this->createMock(CacheService::class);
+        $this->emailService = new EmailService($this->cacheService);
         Mail::fake();
     }
 

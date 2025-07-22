@@ -6,6 +6,7 @@ use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use App\Services\EmailService;
+use App\Services\CacheService;
 use App\Models\User;
 use App\Models\Organization;
 use App\Models\Invitation;
@@ -17,18 +18,21 @@ class EmailServiceBasicTest extends TestCase
     use RefreshDatabase;
 
     private EmailService $emailService;
+    private CacheService $cacheService;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->emailService = new EmailService();
+        $this->cacheService = $this->createMock(CacheService::class);
+        $this->emailService = new EmailService($this->cacheService);
         Mail::fake();
     }
 
     public function test_email_service_can_be_instantiated()
     {
         // Arrange & Act
-        $emailService = new EmailService();
+        $cacheService = $this->createMock(CacheService::class);
+        $emailService = new EmailService($cacheService);
 
         // Assert
         $this->assertInstanceOf(EmailService::class, $emailService);
