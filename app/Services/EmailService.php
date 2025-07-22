@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use App\Models\Invitation;
 use App\Models\Notification;
 use App\Mail\OrganizationInvitationMail;
@@ -13,6 +14,13 @@ use Exception;
 
 class EmailService
 {
+    private CacheService $cacheService;
+
+    public function __construct(CacheService $cacheService)
+    {
+        $this->cacheService = $cacheService;
+    }
+
     /**
      * Enviar invitación para crear organización
      * 
@@ -22,6 +30,14 @@ class EmailService
      */
     public function sendOrganizationInvitation(Invitation $invitation, ?string $customMessage = null): bool
     {
+        // Validar que el invitation tenga un email válido
+        if (empty($invitation->email)) {
+            Log::warning('Intento de enviar invitación sin email válido', [
+                'invitation_id' => $invitation->id ?? 'null'
+            ]);
+            return false;
+        }
+
         try {
             $invitationUrl = $this->generateInvitationUrl($invitation->token);
             
