@@ -22,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Register custom middleware aliases
         $middleware->alias([
             'super-admin' => \App\Http\Middleware\CheckSuperAdmin::class,
+            'cache' => \App\Http\Middleware\CacheMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

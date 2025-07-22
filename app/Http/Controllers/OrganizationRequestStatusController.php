@@ -9,6 +9,7 @@ use App\Models\Organization;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\EmailService;
+use App\Services\CacheService;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -19,10 +20,12 @@ use Illuminate\Support\Facades\Log;
 class OrganizationRequestStatusController extends Controller
 {
     private EmailService $emailService;
+    private CacheService $cacheService;
 
-    public function __construct(EmailService $emailService)
+    public function __construct(EmailService $emailService, CacheService $cacheService)
     {
         $this->emailService = $emailService;
+        $this->cacheService = $cacheService;
     }
 
     /**
@@ -114,6 +117,12 @@ class OrganizationRequestStatusController extends Controller
 
             DB::commit();
 
+            // Invalidate relevant caches
+            $this->cacheService->invalidateInvitation($invitation->id);
+            $this->cacheService->invalidateOrganization($organization->id);
+            $this->cacheService->invalidateUser($user->id);
+            $this->cacheService->forget($this->cacheService->getStatsKey('dashboard'));
+
             // Generar password temporal
             $tempPassword = \Illuminate\Support\Str::random(12);
             $user->update(['password' => Hash::make($tempPassword)]);
@@ -160,6 +169,10 @@ class OrganizationRequestStatusController extends Controller
 
             DB::commit();
 
+            // Invalidate relevant caches
+            $this->cacheService->invalidateInvitation($invitation->id);
+            $this->cacheService->forget($this->cacheService->getStatsKey('dashboard'));
+
             // Enviar email de rechazo
             $emailSent = $this->emailService->sendRejectionNotification($invitation, $message);
 
@@ -195,6 +208,10 @@ class OrganizationRequestStatusController extends Controller
             ]);
 
             DB::commit();
+
+            // Invalidate relevant caches
+            $this->cacheService->invalidateInvitation($invitation->id);
+            $this->cacheService->forget($this->cacheService->getStatsKey('dashboard'));
 
             // Enviar email solicitando correcciones
             $emailSent = $this->emailService->sendCorrectionsRequest($invitation, $correctionsNotes);

@@ -6,19 +6,21 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\SuborganizationController;
 use App\Http\Controllers\SuperAdminController;
-use App\Http\Controllers\OrganizationRequestController;
+use App\Http\Controllers\OrganizationRequestPublicController;
+use App\Http\Controllers\OrganizationRequestStatusController;
+use App\Http\Controllers\OrganizationRequestAdminController;
 
-Route::middleware(['throttle:60,1'])->post('/login', [AuthController::class, 'login']);
+Route::middleware(['throttle:5,1'])->post('/login', [AuthController::class, 'login']);
 Route::post('/request-suborganization', [SuborganizationController::class, 'requestSuborganization']);
 
 // Public routes for organization requests
 Route::prefix('organization-request')->group(function () {
-    Route::get('/verify/{token}', [OrganizationRequestController::class, 'verifyToken']);
-    Route::post('/submit/{token}', [OrganizationRequestController::class, 'submitRequest']);
+    Route::get('/verify/{token}', [OrganizationRequestPublicController::class, 'verifyToken']);
+    Route::post('/submit/{token}', [OrganizationRequestPublicController::class, 'submitRequest']);
 });
 
 // Public route for anyone to submit organization requests
-Route::post('/organization-requests', [OrganizationRequestController::class, 'createPublicRequest']);
+Route::post('/organization-requests', [OrganizationRequestPublicController::class, 'createRequest']);
 
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -63,11 +65,11 @@ Route::prefix('super-admin')->middleware(['auth:sanctum', 'super-admin'])->group
     
     // Organization requests management
     Route::prefix('organization-requests')->group(function () {
-        Route::post('/send-invitation', [OrganizationRequestController::class, 'sendInvitation']);
-        Route::get('/', [OrganizationRequestController::class, 'listRequests']);
-        Route::get('/statistics', [OrganizationRequestController::class, 'getStatistics']);
-        Route::get('/{invitationId}', [OrganizationRequestController::class, 'getRequest']);
-        Route::put('/{invitationId}/status', [OrganizationRequestController::class, 'updateRequestStatus']);
-        Route::patch('/{invitationId}/status', [OrganizationRequestController::class, 'updateRequestStatus']);
+        Route::post('/send-invitation', [OrganizationRequestAdminController::class, 'sendInvitation']);
+        Route::get('/', [OrganizationRequestAdminController::class, 'listRequests']);
+        Route::get('/statistics', [OrganizationRequestAdminController::class, 'getStatistics']);
+        Route::get('/{invitationId}', [OrganizationRequestAdminController::class, 'getRequest']);
+        Route::put('/{invitationId}/status', [OrganizationRequestStatusController::class, 'updateStatus']);
+        Route::patch('/{invitationId}/status', [OrganizationRequestStatusController::class, 'updateStatus']);
     });
 });

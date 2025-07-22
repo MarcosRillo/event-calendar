@@ -20,12 +20,12 @@ class AuthController extends Controller
     }
     public function login(Request $request)
     {
-        try {
-            $credentials = $request->validate([
-                'email' => ['required', 'email'],
-                'password' => ['required'],
-            ]);
+        $credentials = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required'],
+        ]);
 
+        try {
             if (Auth::attempt($credentials)) {
                 $user = $this->getAuthenticatedUser();
                 
@@ -48,11 +48,11 @@ class AuthController extends Controller
             }
 
             // Log de credenciales inválidas
-            Log::warning('Login failed - Invalid credentials', [
-                'email' => $credentials['email'],
-                'ip' => $request->ip(),
-                'timestamp' => now()->toISOString(),
-            ]);
+            // Log::warning('Login failed - Invalid credentials', [
+            //     'email' => $credentials['email'],
+            //     'ip' => $request->ip(),
+            //     'timestamp' => now()->toISOString(),
+            // ]);
 
             return response()->json([
                 'success' => false,
@@ -60,17 +60,17 @@ class AuthController extends Controller
             ], 401);
         } catch (\Exception $e) {
             // Log de error durante login
-            Log::error('Error during login', [
-                'error' => $e->getMessage(),
-                'email' => $request->input('email'),
-                'ip' => $request->ip(),
-                'timestamp' => now()->toISOString(),
-            ]);
+            // Log::error('Error during login', [
+            //     'error' => $e->getMessage(),
+            //     'email' => $request->input('email'),
+            //     'ip' => $request->ip(),
+            //     'timestamp' => now()->toISOString(),
+            // ]);
 
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred during login.',
-                'error' => app()->environment('local') ? $e->getMessage() : null,
+                'error' => app()->environment(['local', 'testing']) ? $e->getMessage() : null,
             ], 500);
         }
     }

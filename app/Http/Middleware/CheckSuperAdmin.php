@@ -42,6 +42,20 @@ class CheckSuperAdmin
             ], 401);
         }
 
+        // Verificar que el usuario sea una instancia válida del modelo User
+        if (!$user instanceof \App\Models\User) {
+            Log::warning('SuperAdmin access denied - Invalid user object', [
+                'route' => $request->path(),
+                'ip' => $request->ip(),
+                'user_type' => get_class($user),
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Authentication required.',
+            ], 401);
+        }
+
         // Verificar que el usuario tenga el rol de superadmin
         if (!$user->isSuperAdmin()) {
             Log::warning('SuperAdmin access denied - Insufficient privileges', [

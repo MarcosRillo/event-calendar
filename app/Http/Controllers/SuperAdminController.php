@@ -9,9 +9,17 @@ use App\Models\User;
 use App\Models\Organization;
 use App\Models\Event;
 use App\Models\Role;
+use App\Services\CacheService;
 
 class SuperAdminController extends Controller
 {
+    private CacheService $cacheService;
+
+    public function __construct(CacheService $cacheService)
+    {
+        $this->cacheService = $cacheService;
+    }
+
     /**
      * Get super admin dashboard data
      */
@@ -20,38 +28,14 @@ class SuperAdminController extends Controller
         try {
             $user = $request->user();
             
-            // Obtener estadísticas generales del sistema
-            $stats = [
-                'total_users' => User::count(),
-                'total_organizations' => Organization::count(),
-                'total_events' => Event::count(),
-                'recent_users' => User::select('id', 'first_name', 'last_name', 'email', 'role_id', 'created_at')
-                    ->with(['role' => fn($query) => $query->select('id', 'name')])
-                    ->latest()
-                    ->take(5)
-                    ->get()
-                    ->map(function ($user) {
-                        return [
-                            'id' => $user->id,
-                            'name' => $user->name,
-                            'email' => $user->email,
-                            'role' => $user->role ? $user->role->name : null,
-                            'created_at' => $user->created_at->format('Y-m-d H:i:s'),
-                        ];
-                    }),
-                'recent_organizations' => Organization::select('id', 'name', 'slug', 'created_at')
-                    ->latest()
-                    ->take(5)
-                    ->get()
-                    ->map(function ($org) {
-                        return [
-                            'id' => $org->id,
-                            'name' => $org->name,
-                            'slug' => $org->slug,
-                            'created_at' => $org->created_at->format('Y-m-d H:i:s'),
-                        ];
-                    }),
-            ];
+            // Cache dashboard data for 10 minutes
+            $stats = $this->cacheService->remember(
+                $this->cacheService->getStatsKey('dashboard'),
+                CacheService::TTL_SHORT * 2, // 10 minutes
+                function () {
+                    return $this->getDashboardStats();
+                }
+            );
 
             return response()->json([
                 'success' => true,
@@ -79,6 +63,44 @@ class SuperAdminController extends Controller
                 'error' => app()->environment('local') ? $e->getMessage() : null,
             ], 500);
         }
+    }
+
+    /**
+     * Get dashboard statistics with optimized queries
+     */
+    private function getDashboardStats(): array
+    {
+        return [
+            'total_users' => User::count(),
+            'total_organizations' => Organization::count(),
+            'total_events' => Event::count(),
+            'recent_users' => User::select('id', 'first_name', 'last_name', 'email', 'role_id', 'created_at')
+                ->with(['role' => fn($query) => $query->select('id', 'name')])
+                ->latest()
+                ->take(5)
+                ->get()
+                ->map(function ($user) {
+                    return [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'role' => $user->role ? $user->role->name : null,
+                        'created_at' => $user->created_at->format('Y-m-d H:i:s'),
+                    ];
+                }),
+            'recent_organizations' => Organization::select('id', 'name', 'slug', 'created_at')
+                ->latest()
+                ->take(5)
+                ->get()
+                ->map(function ($org) {
+                    return [
+                        'id' => $org->id,
+                        'name' => $org->name,
+                        'slug' => $org->slug,
+                        'created_at' => $org->created_at->format('Y-m-d H:i:s'),
+                    ];
+                }),
+        ];
     }
 
     /**
