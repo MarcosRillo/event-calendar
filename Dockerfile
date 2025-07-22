@@ -15,6 +15,17 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install gd pdo pdo_mysql mbstring xml
 
+# Instalar Redis extension para PHP de forma robusta
+RUN apt-get update && apt-get install -y \
+    autoconf \
+    g++ \
+    make \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
+    && apt-get purge -y autoconf g++ make \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/*
+
 # Instalar Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 

@@ -47,4 +47,59 @@ class UserFactory extends Factory
             'email_verified_at' => null,
         ]);
     }
+
+    /**
+     * Create a super admin user.
+     */
+    public function superAdmin(): static
+    {
+        return $this->state(function (array $attributes) {
+            // Buscar o crear el rol de superadmin
+            $superAdminRole = \App\Models\Role::firstOrCreate(
+                ['name' => 'superadmin'],
+                ['description' => 'Super Administrator']
+            );
+
+            return [
+                'role_id' => $superAdminRole->id,
+                'email' => 'superadmin@example.com',
+                'first_name' => 'Super',
+                'last_name' => 'Admin'
+            ];
+        });
+    }
+
+    /**
+     * Create a regular admin user.
+     */
+    public function admin(): static
+    {
+        return $this->state(function (array $attributes) {
+            $adminRole = \App\Models\Role::firstOrCreate(
+                ['name' => 'admin'],
+                ['description' => 'Administrator']
+            );
+
+            return [
+                'role_id' => $adminRole->id,
+            ];
+        });
+    }
+
+    /**
+     * Create an organization admin user.
+     */
+    public function organizationAdmin(): static
+    {
+        return $this->state(function (array $attributes) {
+            $orgAdminRole = \App\Models\Role::firstOrCreate(
+                ['name' => 'organization_admin'],
+                ['description' => 'Organization Administrator']
+            );
+
+            return [
+                'role_id' => $orgAdminRole->id,
+            ];
+        });
+    }
 }
