@@ -571,12 +571,12 @@ class OrganizationRequestController extends Controller
 
             $invitation = Invitation::with(['organizationData', 'adminData'])->findOrFail($invitationId);
 
-            // Verificar que esté en estado pendiente
-            $pendingStatusId = InvitationStatus::where('name', 'pending')->first()->id;
-            if ($invitation->status_id !== $pendingStatusId) {
+            // Verificar que esté en estado pendiente o que necesite correcciones
+            $allowedStatuses = InvitationStatus::whereIn('name', ['pending', 'corrections_needed'])->pluck('id')->toArray();
+            if (!in_array($invitation->status_id, $allowedStatuses)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Solo se pueden procesar solicitudes pendientes',
+                    'message' => 'Solo se pueden procesar solicitudes pendientes o que necesiten correcciones',
                     'error' => 'INVALID_STATUS'
                 ], 422);
             }
