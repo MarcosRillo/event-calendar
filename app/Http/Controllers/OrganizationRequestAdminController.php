@@ -114,21 +114,9 @@ class OrganizationRequestAdminController extends Controller
                 'sort_order' => ['nullable', 'string', 'in:asc,desc']
             ]);
 
-            // Create cache key based on filters
-            $cacheKey = $this->cacheService->getStatsKey('requests', md5(serialize($data)));
-            
-            // Cache requests for 5 minutes (only if no search to avoid too many cache keys)
-            if (empty($data['search'])) {
-                $result = $this->cacheService->remember(
-                    $cacheKey,
-                    CacheService::TTL_SHORT,
-                    function () use ($data) {
-                        return $this->fetchRequests($data);
-                    }
-                );
-            } else {
-                $result = $this->fetchRequests($data);
-            }
+            // Always fetch fresh data for organization requests (no cache)
+            // Organization requests are highly mutable and need real-time updates
+            $result = $this->fetchRequests($data);
 
             return response()->json([
                 'success' => true,
