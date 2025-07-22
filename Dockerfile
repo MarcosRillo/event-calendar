@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     libonig-dev \
     libxml2-dev \
+    supervisor \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install gd pdo pdo_mysql mbstring xml
 
@@ -29,6 +30,12 @@ RUN composer install --optimize-autoloader
 # Configurar permisos
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+
+# Copiar configuración de Supervisor
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Crear directorio para logs de Supervisor
+RUN mkdir -p /var/log/supervisor
 
 # Hacer ejecutable el script de entrada
 RUN chmod +x /var/www/html/docker-entrypoint.sh

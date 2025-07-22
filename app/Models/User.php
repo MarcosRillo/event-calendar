@@ -22,6 +22,7 @@ use Laravel\Sanctum\HasApiTokens;
  * @property-read Organization|null $organization
  * @property-read Role|null $role
  * @property-read User|null $createdBy
+ * @method \Laravel\Sanctum\NewAccessToken createToken(string $name, array $abilities = ['*'])
  */
 class User extends Authenticatable
 {

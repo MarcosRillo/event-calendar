@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\SuborganizationController;
@@ -66,6 +67,7 @@ Route::prefix('super-admin')->middleware(['auth:sanctum', 'super-admin'])->group
         Route::get('/', [OrganizationRequestController::class, 'listRequests']);
         Route::get('/statistics', [OrganizationRequestController::class, 'getStatistics']);
         Route::get('/{invitationId}', [OrganizationRequestController::class, 'getRequest']);
+        Route::put('/{invitationId}/status', [OrganizationRequestController::class, 'updateRequestStatus']);
         Route::patch('/{invitationId}/status', [OrganizationRequestController::class, 'updateRequestStatus']);
     });
 });

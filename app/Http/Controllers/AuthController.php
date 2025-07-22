@@ -27,12 +27,14 @@ class AuthController extends Controller
             ]);
 
             if (Auth::attempt($credentials)) {
-                $request->session()->regenerate();
-                
                 $user = $this->getAuthenticatedUser();
+                
+                // Crear token para API
+                $token = $user->createToken('api-token')->plainTextToken;
                 
                 return response()->json([
                     'success' => true,
+                    'token' => $token,
                     'user' => [
                         'id' => $user->id,
                         'name' => $user->name,

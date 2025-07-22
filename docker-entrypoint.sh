@@ -19,7 +19,19 @@ if [ ! -f "/var/www/html/storage/.seeded" ]; then
     touch /var/www/html/storage/.seeded
 fi
 
-echo "Inicialización completada. Iniciando PHP-FPM..."
+echo "Inicialización completada."
 
-# Iniciar PHP-FPM
-exec php-fpm
+# Generar clave de aplicación si no existe
+if [ ! -f "/var/www/html/.env" ] || ! grep -q "APP_KEY=" /var/www/html/.env || [ -z "$(grep "APP_KEY=" /var/www/html/.env | cut -d'=' -f2)" ]; then
+    echo "Generando clave de aplicación..."
+    php artisan key:generate --force
+fi
+
+# Limpiar caché
+php artisan config:cache
+php artisan route:cache
+
+echo "Iniciando Supervisor (incluye queue workers y PHP-FPM)..."
+
+# Iniciar Supervisor que manejará tanto PHP-FPM como los queue workers
+exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
