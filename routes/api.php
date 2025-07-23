@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\SuborganizationController;
 use App\Http\Controllers\SuperAdminController;
+use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\OrganizationRequestPublicController;
 use App\Http\Controllers\OrganizationRequestStatusController;
 use App\Http\Controllers\OrganizationRequestAdminController;
@@ -59,9 +60,26 @@ Route::middleware(['auth:sanctum'])->group(function () {
 Route::prefix('super-admin')->middleware(['auth:sanctum', 'super-admin'])->group(function () {
     Route::get('/dashboard', [SuperAdminController::class, 'dashboard']);
     Route::get('/users', [SuperAdminController::class, 'users']);
+    Route::get('/users/{userId}', [SuperAdminController::class, 'showUser']); // Show specific user
+    Route::put('/users/{userId}', [SuperAdminController::class, 'updateUser']); // Update user
+    Route::patch('/users/{userId}/toggle-status', [SuperAdminController::class, 'toggleUserStatus']); // Toggle user status
+    Route::delete('/users/{userId}', [SuperAdminController::class, 'deleteUser']); // Soft delete user
+    Route::get('/roles', [SuperAdminController::class, 'getRoles']); // Get all roles
     Route::get('/organizations', [SuperAdminController::class, 'organizations']);
     Route::get('/events', [SuperAdminController::class, 'events']);
     Route::put('/users/{userId}/role', [SuperAdminController::class, 'updateUserRole']);
+    
+    // Organizations CRUD management - using different prefix to avoid conflict
+    Route::prefix('organizations-management')->group(function () {
+        Route::get('/', [OrganizationController::class, 'index']);                    // List organizations
+        Route::get('/{organization}', [OrganizationController::class, 'show']);       // Show organization
+        Route::put('/{organization}', [OrganizationController::class, 'update']);     // Update organization
+        Route::delete('/{organization}', [OrganizationController::class, 'destroy']); // Soft delete
+        Route::post('/{organization}/restore', [OrganizationController::class, 'restore']); // Restore soft deleted
+        Route::delete('/{organization}/force', [OrganizationController::class, 'forceDestroy']); // Permanent delete
+        Route::patch('/{organization}/toggle-status', [OrganizationController::class, 'toggleStatus']); // Toggle active status
+        Route::put('/{organization}/admin', [OrganizationController::class, 'updateAdmin']); // Update organization admin
+    });
     
     // Organization requests management
     Route::prefix('organization-requests')->group(function () {
